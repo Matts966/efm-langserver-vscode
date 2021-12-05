@@ -19,8 +19,8 @@ export function activate() {
 
   // Create the language client and start the client.
   client = new LanguageClient(
-    'languageServerExample',
-    'Language Server Example',
+    'efmLangserver',
+    'EFM Language Server',
     serverOptions,
     clientOptions
   );
