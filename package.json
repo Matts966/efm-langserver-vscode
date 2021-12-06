@@ -1,10 +1,9 @@
 {
-  "name": "efm-langserver-vscode",
-  "version": "1.0.2",
-  "description": "VSCode Extension for efm-langserver",
-  "author": "Matts966 <Matts966@users.noreply.github.com>",
-  "license": "MIT",
-	"author": "Matts966",
+	"name": "efm-langserver-vscode",
+	"version": "1.0.2",
+	"description": "VSCode Extension for efm-langserver",
+	"author": "Matts966 <Matts966@users.noreply.github.com>",
+	"license": "MIT",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/Matts966/efm-langserver-vscode"
@@ -20,7 +19,7 @@
 	"activationEvents": [
 		"*"
 	],
-	"main": "./out/extension",
+	"main": "./out",
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
 		"compile": "tsc -b",
