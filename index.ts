@@ -13,6 +13,9 @@ import * as vscode from "vscode";
 let client: LanguageClient;
 
 export function activate() {
+  const outputChannel = vscode.window.createOutputChannel("efm-langserver-vscode")
+  outputChannel.appendLine("starting efm-langserver-vscode...")
+
   // If the extension is launched in debug mode then the debug server options are used
   // Otherwise the run options are used
   let serverOptions: ServerOptions = {
@@ -37,6 +40,8 @@ export function activate() {
   // Start the client. This will also launch the server
   client.start();
 
+  outputChannel.appendLine("started efm-langserver-vscode.")
+
   vscode.workspace.onDidChangeTextDocument((e) => {
     if (e.document.uri.scheme !== "file") {
       return
@@ -53,6 +58,7 @@ export function activate() {
         },
       })),
     }
+    outputChannel.appendLine("publishing textDocument/didChange with param: " + JSON.stringify(param))
     return client.sendNotification('textDocument/didChange', param)
   })
   vscode.workspace.onDidSaveTextDocument((e) => {
@@ -65,6 +71,7 @@ export function activate() {
       },
       text: e.getText(),
     }
+    outputChannel.appendLine("publishing textDocument/didSave with param: " + JSON.stringify(param))
     return client.sendNotification('textDocument/didSave', param)
   })
   vscode.workspace.onDidCloseTextDocument((e) => {
@@ -76,6 +83,7 @@ export function activate() {
         uri: e.uri.toString(),
       }
     }
+    outputChannel.appendLine("publishing textDocument/didClose with param: " + JSON.stringify(param))
     return client.sendNotification('textDocument/didClose', param)
   })
   vscode.workspace.onDidOpenTextDocument((e) => {
@@ -90,6 +98,7 @@ export function activate() {
         text: e.getText(),
       }
     }
+    outputChannel.appendLine("publishing textDocument/didOpen with param: " + JSON.stringify(param))
     return client.sendNotification('textDocument/didOpen', param)
   })
 }
