@@ -9,12 +9,16 @@ import {
 } from 'vscode-languageclient/node';
 
 import * as vscode from "vscode";
+import { open } from 'fs';
 
 let client: LanguageClient;
 
 export function activate() {
   const outputChannel = vscode.window.createOutputChannel("efm-langserver-vscode")
   outputChannel.appendLine("starting efm-langserver-vscode...")
+
+  // To prevent document not found error.
+  const openDocuments = new Set()
 
   // If the extension is launched in debug mode then the debug server options are used
   // Otherwise the run options are used
@@ -48,6 +52,20 @@ export function activate() {
     if (e.document.uri.scheme !== "file") {
       return
     }
+    if (!openDocuments.has(e.document.uri.toString())) {
+      openDocuments.add(e.document.uri.toString());
+      const param: DidOpenTextDocumentParams = {
+        textDocument: {
+          uri: e.document.uri.toString(),
+          languageId: e.document.languageId,
+          version: e.document.version,
+          text: e.document.getText(),
+        }
+      }
+      outputChannel.appendLine("File not opened, publishing textDocument/didOpen with param: " + JSON.stringify(param))
+      client.sendNotification('textDocument/didOpen', param)
+    }
+
     const param: DidChangeTextDocumentParams = {
       textDocument: {
         uri: e.document.uri.toString(),
@@ -67,6 +85,20 @@ export function activate() {
     if (e.uri.scheme !== "file") {
       return
     }
+    if (!openDocuments.has(e.uri.toString())) {
+      openDocuments.add(e.uri.toString());
+      const param: DidOpenTextDocumentParams = {
+        textDocument: {
+          uri: e.uri.toString(),
+          languageId: e.languageId,
+          version: e.version,
+          text: e.getText(),
+        }
+      }
+      outputChannel.appendLine("File not opened, publishing textDocument/didOpen with param: " + JSON.stringify(param))
+      client.sendNotification('textDocument/didOpen', param)
+    }
+
     const param: DidSaveTextDocumentParams = {
       textDocument: {
         uri: e.uri.toString(),
@@ -92,6 +124,7 @@ export function activate() {
     if (e.uri.scheme !== "file") {
       return
     }
+    openDocuments.add(e.uri.toString());
     const param: DidOpenTextDocumentParams = {
       textDocument: {
         uri: e.uri.toString(),
