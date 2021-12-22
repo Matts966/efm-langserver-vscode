@@ -28,6 +28,8 @@ export function activate() {
     documentSelector: [
       { scheme: "file", pattern: `*` },
     ],
+    outputChannel: outputChannel,
+    traceOutputChannel: outputChannel,
   };
   // Create the language client and start the client.
   client = new LanguageClient(
