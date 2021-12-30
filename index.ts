@@ -6,10 +6,10 @@ import {
   DidSaveTextDocumentParams,
   DidCloseTextDocumentParams,
   DidOpenTextDocumentParams,
+  DocumentFormattingParams,
 } from 'vscode-languageclient/node';
 
 import * as vscode from "vscode";
-import { open } from 'fs';
 
 let client: LanguageClient;
 
@@ -85,6 +85,15 @@ export function activate() {
     if (e.uri.scheme !== "file") {
       return
     }
+    const formatParams: DocumentFormattingParams = {
+        textDocument: {
+          uri: e.uri.toString(),
+        },
+        options: null
+    }
+    outputChannel.appendLine("publishing textDocument/formatting with param: " + JSON.stringify(formatParams))
+    client.sendNotification('textDocument/formatting', formatParams)
+
     if (!openDocuments.has(e.uri.toString())) {
       openDocuments.add(e.uri.toString());
       const param: DidOpenTextDocumentParams = {
