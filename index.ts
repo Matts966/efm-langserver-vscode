@@ -1,15 +1,11 @@
-import {
-  LanguageClient,
-  LanguageClientOptions,
-  ServerOptions,
-  DidChangeTextDocumentParams,
-  DidSaveTextDocumentParams,
-  DidCloseTextDocumentParams,
-  DidOpenTextDocumentParams,
-  DocumentFormattingParams,
-} from 'vscode-languageclient/node';
-
 import * as vscode from "vscode";
+import {
+  DidChangeTextDocumentParams, DidCloseTextDocumentParams,
+  DidOpenTextDocumentParams, DidSaveTextDocumentParams, DocumentFormattingParams, HoverParams, LanguageClient, LanguageClientOptions,
+  ServerOptions
+} from 'vscode-languageclient/node';
+import { HoverRequest } from 'vscode-languageserver-protocol';
+
 
 let client: LanguageClient;
 
@@ -86,10 +82,10 @@ export function activate() {
       return
     }
     const formatParams: DocumentFormattingParams = {
-        textDocument: {
-          uri: e.uri.toString(),
-        },
-        options: null
+      textDocument: {
+        uri: e.uri.toString(),
+      },
+      options: null
     }
     outputChannel.appendLine("publishing textDocument/formatting with param: " + JSON.stringify(formatParams))
     client.sendNotification('textDocument/formatting', formatParams)
@@ -145,6 +141,19 @@ export function activate() {
     outputChannel.appendLine("publishing textDocument/didOpen with param: " + JSON.stringify(param))
     return client.sendNotification('textDocument/didOpen', param)
   })
+  vscode.languages.registerHoverProvider([
+    'sql-bigquery',
+  ], {
+    provideHover(document, position, token) {
+      outputChannel.appendLine("provideHover");
+      return client.sendRequest(HoverRequest.type, client.code2ProtocolConverter.asTextDocumentPositionParams(document, position), token).then((result) => {
+        if (token.isCancellationRequested) {
+          return null;
+        }
+        return client.protocol2CodeConverter.asHover(result);
+      });
+    }
+  });
 }
 
 export function deactivate(): Thenable<void> | undefined {
