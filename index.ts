@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import {
   DidChangeTextDocumentParams, DidCloseTextDocumentParams,
-  DidOpenTextDocumentParams, DidSaveTextDocumentParams, DocumentFormattingParams, HoverParams, LanguageClient, LanguageClientOptions,
+  DidOpenTextDocumentParams, DidSaveTextDocumentParams, DocumentFormattingParams, LanguageClient, LanguageClientOptions,
   ServerOptions
 } from 'vscode-languageclient/node';
 import { HoverRequest } from 'vscode-languageserver-protocol';
@@ -142,10 +142,27 @@ export function activate() {
     return client.sendNotification('textDocument/didOpen', param)
   })
   vscode.languages.registerHoverProvider([
-    'sql-bigquery',
+    { scheme: "file", pattern: `*` },
   ], {
     provideHover(document, position, token) {
-      outputChannel.appendLine("provideHover");
+      if (document.uri.scheme !== "file") {
+        outputChannel.appendLine("uri: " + document.uri.toString() + " is not a file")
+        return
+      }
+      outputChannel.appendLine("provideHover for " + document.uri.toString())
+      if (!openDocuments.has(document.uri.toString())) {
+        openDocuments.add(document.uri.toString());
+        const param: DidOpenTextDocumentParams = {
+          textDocument: {
+            uri: document.uri.toString(),
+            languageId: document.languageId,
+            version: document.version,
+            text: document.getText(),
+          }
+        }
+        outputChannel.appendLine("File not opened, publishing textDocument/didOpen with param: " + JSON.stringify(param))
+        client.sendNotification('textDocument/didOpen', param)
+      }
       return client.sendRequest(HoverRequest.type, client.code2ProtocolConverter.asTextDocumentPositionParams(document, position), token).then((result) => {
         if (token.isCancellationRequested) {
           return null;
