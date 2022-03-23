@@ -1,6 +1,6 @@
 {
 	"name": "efm-langserver-vscode",
-	"version": "1.2.1",
+	"version": "1.2.2",
 	"description": "VSCode Extension for efm-langserver",
 	"author": "Matts966 <Matts966@users.noreply.github.com>",
 	"license": "MIT",

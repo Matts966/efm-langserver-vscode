@@ -142,7 +142,7 @@ export function activate() {
     return client.sendNotification('textDocument/didOpen', param)
   })
   vscode.languages.registerHoverProvider([
-    { scheme: "file", pattern: `*` },
+    `*`,
   ], {
     provideHover(document, position, token) {
       if (document.uri.scheme !== "file") {
