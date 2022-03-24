@@ -4,17 +4,17 @@ import {
   DidOpenTextDocumentParams, DidSaveTextDocumentParams, DocumentFormattingParams, LanguageClient, LanguageClientOptions,
   ServerOptions
 } from 'vscode-languageclient/node';
-import { HoverRequest } from 'vscode-languageserver-protocol';
+import { HoverRequest, CompletionRequest } from 'vscode-languageserver-protocol';
 
 
 let client: LanguageClient;
 
-export function activate() {
+export async function activate() {
   const outputChannel = vscode.window.createOutputChannel("efm-langserver-vscode")
   outputChannel.appendLine("starting efm-langserver-vscode...")
 
   // To prevent document not found error.
-  const openDocuments = new Set()
+  const openDocuments = new Set<string>()
 
   // If the extension is launched in debug mode then the debug server options are used
   // Otherwise the run options are used
@@ -48,20 +48,7 @@ export function activate() {
     if (e.document.uri.scheme !== "file") {
       return
     }
-    if (!openDocuments.has(e.document.uri.toString())) {
-      openDocuments.add(e.document.uri.toString());
-      const param: DidOpenTextDocumentParams = {
-        textDocument: {
-          uri: e.document.uri.toString(),
-          languageId: e.document.languageId,
-          version: e.document.version,
-          text: e.document.getText(),
-        }
-      }
-      outputChannel.appendLine("File not opened, publishing textDocument/didOpen with param: " + JSON.stringify(param))
-      client.sendNotification('textDocument/didOpen', param)
-    }
-
+    openFile(e.document, outputChannel, openDocuments);
     const param: DidChangeTextDocumentParams = {
       textDocument: {
         uri: e.document.uri.toString(),
@@ -89,20 +76,6 @@ export function activate() {
     }
     outputChannel.appendLine("publishing textDocument/formatting with param: " + JSON.stringify(formatParams))
     client.sendNotification('textDocument/formatting', formatParams)
-
-    if (!openDocuments.has(e.uri.toString())) {
-      openDocuments.add(e.uri.toString());
-      const param: DidOpenTextDocumentParams = {
-        textDocument: {
-          uri: e.uri.toString(),
-          languageId: e.languageId,
-          version: e.version,
-          text: e.getText(),
-        }
-      }
-      outputChannel.appendLine("File not opened, publishing textDocument/didOpen with param: " + JSON.stringify(param))
-      client.sendNotification('textDocument/didOpen', param)
-    }
 
     const param: DidSaveTextDocumentParams = {
       textDocument: {
@@ -144,25 +117,13 @@ export function activate() {
   vscode.languages.registerHoverProvider([
     `*`,
   ], {
-    provideHover(document, position, token) {
+    async provideHover(document, position, token) {
       if (document.uri.scheme !== "file") {
         outputChannel.appendLine("uri: " + document.uri.toString() + " is not a file")
         return
       }
       outputChannel.appendLine("provideHover for " + document.uri.toString())
-      if (!openDocuments.has(document.uri.toString())) {
-        openDocuments.add(document.uri.toString());
-        const param: DidOpenTextDocumentParams = {
-          textDocument: {
-            uri: document.uri.toString(),
-            languageId: document.languageId,
-            version: document.version,
-            text: document.getText(),
-          }
-        }
-        outputChannel.appendLine("File not opened, publishing textDocument/didOpen with param: " + JSON.stringify(param))
-        client.sendNotification('textDocument/didOpen', param)
-      }
+      openFile(document, outputChannel, openDocuments);
       return client.sendRequest(HoverRequest.type, client.code2ProtocolConverter.asTextDocumentPositionParams(document, position), token).then((result) => {
         if (token.isCancellationRequested) {
           return null;
@@ -171,6 +132,44 @@ export function activate() {
       });
     }
   });
+
+  await client.onReady(); // To get initializeResult
+  const triggers = client.initializeResult?.capabilities?.completionProvider?.triggerCharacters;
+  outputChannel.appendLine(`trigger characters: ${triggers}`);
+  vscode.languages.registerCompletionItemProvider([
+    `*`,
+  ], {
+    async provideCompletionItems(document, position, token) {
+      if (document.uri.scheme !== "file") {
+        outputChannel.appendLine("uri: " + document.uri.toString() + " is not a file")
+        return
+      }
+      outputChannel.appendLine("provideCompletionItems for " + document.uri.toString())
+      openFile(document, outputChannel, openDocuments);
+      const result = await client.sendRequest(CompletionRequest.type, client.code2ProtocolConverter.asTextDocumentPositionParams(document, position), token);
+      if (token.isCancellationRequested) {
+        return null;
+      }
+      return client.protocol2CodeConverter.asCompletionResult(result);
+    }
+  },
+  ...triggers);
+}
+
+function openFile(document: vscode.TextDocument, outputChannel: vscode.OutputChannel, openDocuments: Set<string>) {
+  if (!openDocuments.has(document.uri.toString())) {
+    openDocuments.add(document.uri.toString());
+  }
+  const param: DidOpenTextDocumentParams = {
+    textDocument: {
+      uri: document.uri.toString(),
+      languageId: document.languageId,
+      version: document.version,
+      text: document.getText(),
+    }
+  }
+  outputChannel.appendLine("File not opened, publishing textDocument/didOpen with param: " + JSON.stringify(param))
+  client.sendNotification('textDocument/didOpen', param)
 }
 
 export function deactivate(): Thenable<void> | undefined {
